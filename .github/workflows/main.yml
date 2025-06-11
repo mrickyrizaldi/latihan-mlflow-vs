@@ -1,5 +1,5 @@
 name: CI
- 
+
 on:
   push:
     branches:
@@ -7,63 +7,74 @@ on:
   pull_request:
     branches:
       - main
- 
+
 env:
   CSV_URL: "MLproject/train_pca.csv"
- 
+
 jobs:
   build:
     runs-on: ubuntu-latest
- 
+    # izin tulis pada konten repositori agar workflow dapat push.
+    permissions:
+      contents: write
+
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE
       - uses: actions/checkout@v3
- 
+
+      # Set up Git Credentials globally for the entire job.
+      - name: Set up Git Credentials
+        run: |
+          git config --global user.name ${{ secrets.USERNAME }}
+          git config --global user.email ${{ secrets.EMAIL }}
+
       # Setup Python 3.12.7
       - name: Set up Python 3.12.7
         uses: actions/setup-python@v4
         with:
           python-version: "3.12.7"
-      
-      # Check Env Variables
+
+      # Check Environment Variables untuk tujuan debugging
       - name: Check Env
         run: |
-          echo $CSV_URL
- 
-      # Install mlflow
+          echo "CSV_URL: $CSV_URL"
+
+      # Install MLflow dan dependensi Python lainnya yang diperlukan, termasuk dependensi untuk Google Drive API.
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install --upgrade google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
-          pip install mlflow
-      
-      # Run as a mlflow project
+          pip install mlflow google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client
+
+      # Set up Git LFS tracking untuk direktori 'mlruns'.
+      - name: Set up Git LFS tracking
+        run: |
+          git lfs install
+          git lfs track "mlruns/**"
+          git add .gitattributes
+          # Commit .gitattributes; '|| true' mencegah kegagalan jika tidak ada perubahan.
+          git commit -m "Track large files in mlruns with Git LFS" || true
+
+      # Jalankan proyek MLflow.
       - name: Run mlflow project
         run: |
-          mlflow run MLproject --env-manager=local 
- 
-      - name: Set up Git LFS
-        run: |
-           git config --global user.name ${{ secrets.USERNAME }}
-           git config --global user.email ${{ secrets.EMAIL }}
-           git lfs install
-           git lfs track "mlruns/**"
-           git add .gitattributes
-           git commit -m "Track large files in mlruns with Git LFS" || true
-           git push origin main
-          
-       # Save models to GitHub Repository
+          echo "Listing contents of MLproject directory..."
+          ls -la MLproject/
+          cd MLproject/
+          mlflow run . --env-manager=local
+          # Kembali ke direktori root repositori untuk langkah-langkah selanjutnya.
+          cd ../
+
+      # Simpan artefak MLflow (mlruns) ke Repositori GitHub.
       - name: Save mlruns to repo
         run: |
-           git config --global user.name ${{ secrets.USERNAME }}
-           git config --global user.email ${{ secrets.EMAIL }}
-           git add -f mlruns/
-           git commit -m "Save mlruns from CI run" || true
-           git push origin main
+          git add -f mlruns/
+          git commit -m "Save mlruns from CI run" || true
+          git push origin main
 
+      # Upload hasil ke Google Drive.
       - name: Upload to Google Drive
         env:
-          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }} 
+          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
         run: |
           python MLproject/upload_to_gdrive.py
