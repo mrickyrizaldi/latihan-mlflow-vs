@@ -16,7 +16,6 @@ service = build('drive', 'v3', credentials=credentials)
 
 # 3. Gunakan ID Shared Drive (atau folder di Shared Drive) sebagai "parent"
 SHARED_DRIVE_ID = os.environ["GDRIVE_FOLDER_ID"]
-# Pastikan service account sudah diundang ke Shared Drive sebagai Content Manager / Manager / Editor
 
 def upload_directory(local_dir_path, parent_drive_id):
     """
@@ -59,7 +58,7 @@ def upload_directory(local_dir_path, parent_drive_id):
 
 # 4. Baca semua subfolder (run_id) di "./mlruns/0"
 #    Kemudian buat folder sesuai run_id di Shared Drive (tanpa folder "mlruns" agar tidad redundant).
-local_mlruns_0 = "./mlruns/0"
+local_mlruns_0 = "./MLproject/mlruns/0"
 
 for run_id in os.listdir(local_mlruns_0):
     run_id_local_path = os.path.join(local_mlruns_0, run_id)
