@@ -53,7 +53,6 @@ jobs:
           git commit -m "Track large files in mlruns with Git LFS" || true
 
       # Run the MLflow project.
-      # Ini akan membuat mlruns/ di dalam direktori MLproject/
       - name: Run mlflow project
         run: |
           echo "Listing contents of MLproject directory..."
